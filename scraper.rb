@@ -34,7 +34,8 @@ def scrape_term(url)
       wikiname: tds[0].xpath('.//a[not(@class="new")]/@title').text,
       term: 37,
     }
-    data[:party_id] = 'r' if data[:party_id] == 'rkp'
+    data[:party_id] = 'r' if %w(rkp muu).include? data[:party_id] 
+    data[:party_id] = 'sd' if data[:party_id] == 'sdp'
     ScraperWiki.save_sqlite([:name, :party_id, :term], data)
   end
 end
