@@ -30,7 +30,7 @@ def scrape_term(url)
     data = { 
       name: tds[0].css('a').first.text.tidy,
       party_id: tds[1].text.tidy.downcase,
-      constituency: tds[2].text,
+      constituency: tds[2].text.gsub(' vaalipiiri', ''),
       wikiname: tds[0].xpath('.//a[not(@class="new")]/@title').text,
       term: 37,
     }
