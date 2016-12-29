@@ -1,5 +1,6 @@
 #!/bin/env ruby
 # encoding: utf-8
+# frozen_string_literal: true
 
 require 'colorize'
 require 'nokogiri'
@@ -12,7 +13,7 @@ OpenURI::Cache.cache_path = '.cache'
 
 class String
   def tidy
-    self.gsub(/[[:space:]]+/, ' ').strip
+    gsub(/[[:space:]]+/, ' ').strip
   end
 end
 
@@ -27,16 +28,16 @@ def scrape_term(url)
 
   table.xpath('.//tr[td]').each do |tr|
     tds = tr.css('td')
-    data = { 
-      name: tds[0].css('a').first.text.tidy,
-      party_id: tds[1].text.tidy.downcase,
+    data = {
+      name:         tds[0].css('a').first.text.tidy,
+      party_id:     tds[1].text.tidy.downcase,
       constituency: tds[2].text.gsub(' vaalipiiri', ''),
-      wikiname: tds[0].xpath('.//a[not(@class="new")]/@title').text,
-      term: 37,
+      wikiname:     tds[0].xpath('.//a[not(@class="new")]/@title').text,
+      term:         37,
     }
-    data[:party_id] = 'r' if %w(rkp muu).include? data[:party_id] 
+    data[:party_id] = 'r' if %w(rkp muu).include? data[:party_id]
     data[:party_id] = 'sd' if data[:party_id] == 'sdp'
-    ScraperWiki.save_sqlite([:name, :party_id, :term], data)
+    ScraperWiki.save_sqlite(%i(name party_id term), data)
   end
 end
 
