@@ -40,4 +40,5 @@ def scrape_term(url)
   end
 end
 
+ScraperWiki.sqliteexecute('DELETE FROM data') rescue nil
 scrape_term 'https://fi.wikipedia.org/wiki/Luettelo_vaalikauden_2015%E2%80%932019_kansanedustajista'
