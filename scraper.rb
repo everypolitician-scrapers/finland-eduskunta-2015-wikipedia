@@ -60,22 +60,14 @@ class MemberRow < Scraped::HTML
     37
   end
 
-  field :end_date do
+  field :start_date do
     return unless tds[6].text.include? 'seuraajaksi'
     Date.new(*tds[6].text[/(\d+\.\d+.\d{4})/].split('.').reverse.map(&:to_i)).to_s
   end
 
-  field :replacement do
-    return unless end_date
-    who = tds[6].at_css('a')
-    {
-      name:         who.text.tidy,
-      party_id:     party_id,
-      constituency: constituency,
-      wikiname:     who.attr('title'),
-      term:         37,
-      start_date:   end_date,
-    }
+  field :replaces do
+    return unless start_date
+    tds[6].at_css('a/@title').text
   end
 
   private
@@ -87,14 +79,12 @@ end
 
 url = 'https://fi.wikipedia.org/wiki/Luettelo_vaalikauden_2015%E2%80%932019_kansanedustajista'
 page = MembersPage.new(response: Scraped::Request.new(url: url).response)
-data = page.members.map do |mem|
-  md = mem.to_h.reject { |_, v| v.to_s.empty? }
-  if replacement = md.delete(:replacement)
-    [md, replacement]
-  else
-    md
-  end
-end.flatten
+data = page.members.map(&:to_h).map { |m| m.reject { |_, v| v.to_s.empty? } }
+
+data.select { |m| m.key? :replaces }.each do |new|
+  replaced = data.find { |old| old[:wikiname] == new[:replaces] } or raise "Can't find #{new[:replaces]}"
+  replaced[:end_date] = new[:start_date]
+end
 
 # puts data
 ScraperWiki.sqliteexecute('DELETE FROM data') rescue nil
