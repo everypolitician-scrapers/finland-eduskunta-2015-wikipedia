@@ -5,6 +5,7 @@
 require 'nokogiri'
 require 'open-uri'
 require 'scraperwiki'
+require 'scraped'
 
 require 'pry'
 require 'open-uri/cached'
@@ -20,25 +21,56 @@ def noko_for(url)
   Nokogiri::HTML(open(url).read)
 end
 
-def scrape_term(url)
-  noko = noko_for(url)
-  table = noko.xpath(".//table[.//th[contains(.,'Puolue')]]")
-  raise "Can't find unique table of Members" unless table.count == 1
+class MembersPage < Scraped::HTML
+  field :members do
+    table.xpath('.//tr[td]').map do |tr|
+      fragment tr => MemberRow
+    end
+  end
 
-  table.xpath('.//tr[td]').each do |tr|
-    tds = tr.css('td')
-    data = {
-      name:         tds[0].css('a').first.text.tidy,
-      party_id:     tds[1].text.tidy.downcase,
-      constituency: tds[2].text.gsub(' vaalipiiri', ''),
-      wikiname:     tds[0].xpath('.//a[not(@class="new")]/@title').text,
-      term:         37,
-    }
-    data[:party_id] = 'r' if %w(rkp muu).include? data[:party_id]
-    data[:party_id] = 'sd' if data[:party_id] == 'sdp'
-    ScraperWiki.save_sqlite(%i(name party_id term), data)
+  private
+
+  def table
+    noko.xpath(".//table[.//th[contains(.,'Puolue')]]")
   end
 end
 
+class MemberRow < Scraped::HTML
+  field :name do
+    tds[0].css('a').first.text.tidy
+  end
+
+  field :party_id do
+    pid = tds[1].text.tidy.downcase
+    return 'r'  if name == 'Mats Löfström'
+    return 'r'  if pid == 'rkp'
+    return 'sd' if pid == 'sdp'
+    pid
+  end
+
+  field :constituency do
+    tds[2].text.gsub(' vaalipiiri', '')
+  end
+
+  field :wikiname do
+    tds[0].xpath('.//a[not(@class="new")]/@title').text
+  end
+
+  field :term do
+    37
+  end
+
+  private
+
+  def tds
+    noko.css('td')
+  end
+end
+
+url = 'https://fi.wikipedia.org/wiki/Luettelo_vaalikauden_2015%E2%80%932019_kansanedustajista'
+page = MembersPage.new(response: Scraped::Request.new(url: url).response)
+data = page.members.map(&:to_h)
+# puts data
+
 ScraperWiki.sqliteexecute('DELETE FROM data') rescue nil
-scrape_term 'https://fi.wikipedia.org/wiki/Luettelo_vaalikauden_2015%E2%80%932019_kansanedustajista'
+ScraperWiki.save_sqlite(%i(name party_id term), data)
