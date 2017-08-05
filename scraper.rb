@@ -23,7 +23,7 @@ class MembersPage < Scraped::HTML
   private
 
   def table
-    noko.xpath(".//table[.//th[contains(.,'Puolue')]]")
+    noko.xpath(".//table[.//th[contains(.,'Puolue')]]").first
   end
 end
 
@@ -32,16 +32,16 @@ class MemberRow < Scraped::HTML
     tds[0].css('a').first.text.tidy
   end
 
-  field :party_id do
-    pid = tds[1].text.tidy.downcase
-    return 'r'  if name == 'Mats Löfström'
-    return 'r'  if pid == 'rkp'
-    return 'sd' if pid == 'sdp'
-    pid
+  field :sort_name do
+    tds[0].css('span[style="display:none;"]').text
+  end
+
+  field :party do
+    tds[2].text.tidy || ''
   end
 
   field :constituency do
-    tds[2].text.gsub(' vaalipiiri', '')
+    tds[3].text.gsub(' vaalipiiri', '')
   end
 
   field :wikiname do
@@ -80,4 +80,4 @@ end
 
 data.each { |mem| puts mem.reject { |_, v| v.to_s.empty? }.sort_by { |k, _| k }.to_h } if ENV['MORPH_DEBUG']
 ScraperWiki.sqliteexecute('DROP TABLE data') rescue nil
-ScraperWiki.save_sqlite(%i[name party_id term], data)
+ScraperWiki.save_sqlite(%i[name term], data)
