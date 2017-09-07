@@ -5,6 +5,7 @@
 require 'pry'
 require 'scraped'
 require 'scraperwiki'
+require 'wikidata_ids_decorator'
 
 require 'open-uri/cached'
 OpenURI::Cache.cache_path = '.cache'
@@ -14,6 +15,8 @@ def noko_for(url)
 end
 
 class MembersPage < Scraped::HTML
+  decorator WikidataIdsDecorator::Links
+
   field :members do
     table.xpath('.//tr[td]').map do |tr|
       fragment tr => MemberRow
@@ -23,6 +26,7 @@ class MembersPage < Scraped::HTML
   private
 
   def table
+    # TODO: changes
     noko.xpath(".//table[.//th[contains(.,'Puolue')]]").first
   end
 end
@@ -36,12 +40,24 @@ class MemberRow < Scraped::HTML
     tds[0].css('span[style="display:none;"]').text
   end
 
+  field :wikidata do
+    tds[0].css('a/@wikidata').text
+  end
+
   field :party do
     tds[2].text.tidy || ''
   end
 
+  field :party_wikidata do
+    tds[2].css('a/@wikidata').text
+  end
+
   field :constituency do
     tds[3].text.gsub(' vaalipiiri', '')
+  end
+
+  field :constituency_wikidata do
+    tds[3].css('a/@wikidata').text
   end
 
   field :wikiname do
