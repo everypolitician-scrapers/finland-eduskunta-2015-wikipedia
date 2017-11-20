@@ -10,10 +10,6 @@ require 'wikidata_ids_decorator'
 require 'open-uri/cached'
 OpenURI::Cache.cache_path = '.cache'
 
-def noko_for(url)
-  Nokogiri::HTML(open(url).read)
-end
-
 class MembersPage < Scraped::HTML
   decorator WikidataIdsDecorator::Links
 
