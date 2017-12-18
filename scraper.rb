@@ -89,8 +89,4 @@ class MemberRow < Scraped::HTML
 end
 
 url = 'https://fi.wikipedia.org/wiki/Luettelo_vaalikauden_2015%E2%80%932019_kansanedustajista'
-page = MembersPage.new(response: Scraped::Request.new(url: url).response)
-data = page.members
-data.each { |mem| puts mem.reject { |_, v| v.to_s.empty? }.sort_by { |k, _| k }.to_h } if ENV['MORPH_DEBUG']
-ScraperWiki.sqliteexecute('DROP TABLE data') rescue nil
-ScraperWiki.save_sqlite(%i[name term], data)
+Scraped::Scraper.new(url => MembersPage).store(:members, index: %i[name party])
