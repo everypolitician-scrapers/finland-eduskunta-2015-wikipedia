@@ -14,9 +14,12 @@ class MembersPage < Scraped::HTML
   decorator WikidataIdsDecorator::Links
 
   field :members do
-    table.xpath('.//tr[td]').map do |tr|
-      fragment tr => MemberRow
+    members = raw_members.map(&:to_h).map { |m| m.reject { |_, v| v.to_s.empty? } }
+    members.select { |m| m.key? :replaces }.each do |new|
+      replaced = members.find { |old| old[:wikiname] == new[:replaces] } or raise "Can't find #{new[:replaces]}"
+      replaced[:end_date] = new[:start_date]
     end
+    members
   end
 
   private
@@ -24,6 +27,10 @@ class MembersPage < Scraped::HTML
   def table
     # TODO: changes
     noko.xpath(".//table[.//th[contains(.,'Puolue')]]").first
+  end
+
+  def raw_members
+    @mems ||= table.xpath('.//tr[td]').map { |tr| fragment(tr => MemberRow) }
   end
 end
 
@@ -83,13 +90,7 @@ end
 
 url = 'https://fi.wikipedia.org/wiki/Luettelo_vaalikauden_2015%E2%80%932019_kansanedustajista'
 page = MembersPage.new(response: Scraped::Request.new(url: url).response)
-data = page.members.map(&:to_h).map { |m| m.reject { |_, v| v.to_s.empty? } }
-
-data.select { |m| m.key? :replaces }.each do |new|
-  replaced = data.find { |old| old[:wikiname] == new[:replaces] } or raise "Can't find #{new[:replaces]}"
-  replaced[:end_date] = new[:start_date]
-end
-
+data = page.members
 data.each { |mem| puts mem.reject { |_, v| v.to_s.empty? }.sort_by { |k, _| k }.to_h } if ENV['MORPH_DEBUG']
 ScraperWiki.sqliteexecute('DROP TABLE data') rescue nil
 ScraperWiki.save_sqlite(%i[name term], data)
