@@ -56,7 +56,7 @@ class MemberRow < Scraped::HTML
   end
 
   field :constituency do
-    tds[3].text.gsub(' vaalipiiri', '')
+    tds[3].text.gsub(' vaalipiiri', '').tidy
   end
 
   field :constituency_wikidata do
