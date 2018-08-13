@@ -26,7 +26,7 @@ class MembersPage < Scraped::HTML
 
   def table
     # TODO: changes
-    noko.xpath(".//table[.//th[contains(.,'Puolue')]]").first
+    noko.xpath(".//table[.//th[contains(.,'Vaalipiiri')]]").first
   end
 
   def raw_members
